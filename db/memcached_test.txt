@@ -1,0 +1,35 @@
+int main(int argc, char *argv[]){
+	memcached_st* mem = cj_memcached_init("121.42.10.208", 12000);
+	if (!mem){
+		return 0;
+	}
+
+	int i = 0;
+	for (; i < 10000 * 10; i++){
+		int r = cj_memcached_set(mem, "abc", 3, "abcd", 4, 0);
+		if (r != 1){
+			fprintf(stderr, "memcached_set failed\n");
+			cj_memcached_free(mem);
+			return 0;
+		}
+
+		char* value = NULL;
+		int value_len = 0;
+		r = cj_memcached_get(mem, "abc", 3, &value, &value_len);
+		if (r != 1){
+			fprintf(stderr, "memcached_get failed\n");
+			cj_memcached_free(mem);
+			return 0;
+		}
+
+		r = cj_memcached_delete(mem, "abc", 3);
+		if (r != 1){
+			fprintf(stderr, "memcached_delete failed\n");
+			cj_memcached_free(mem);
+			return 0;
+		}
+	}
+
+	cj_memcached_free(mem);
+	return 0;
+}

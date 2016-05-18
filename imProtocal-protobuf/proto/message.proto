@@ -1,0 +1,11 @@
+
+import "header.proto";
+
+message Message{
+	optional string id = 1;
+	optional string from = 2;
+    optional string to = 3;
+	required int32 type = 4;
+	repeated Header header = 5;
+	optional string body = 6;
+}

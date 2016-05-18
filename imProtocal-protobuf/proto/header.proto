@@ -1,0 +1,5 @@
+
+message Header{
+	required string key = 1;
+	required string value = 2;
+}
