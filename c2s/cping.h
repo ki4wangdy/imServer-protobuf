@@ -31,6 +31,8 @@ static void* pthread_run(void* arg){
 		}
 		sleep(30);
 	}
+	pthread_detach(t);
+	return NULL;
 }
 
 void send_ping_packet(c2s_t c2s){

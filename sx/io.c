@@ -36,12 +36,6 @@ void _sx_process_read(sx_t s, sx_buf_t buf) {
     /* done with the buffer */
     _sx_buffer_free(buf);
 
-    /* something went wrong, bail */
-    if(s->fail) {
-		sx_close(s);
-        return;
-    }
-
 }
 
 /** we can read */

@@ -36,7 +36,6 @@ endif
 
 #Sources
 srcs :=
-srcs += callback.c  
 srcs += env.c  
 srcs += io.c  
 srcs += sx.c

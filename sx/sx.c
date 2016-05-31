@@ -31,59 +31,14 @@ sx_t sx_new(int tag, sx_callback_t cb, void *arg, int memcacheq_fd) {
     s->cb_arg = arg;
 	s->memcacheq_fd = memcacheq_fd;
 
-	s->expat = XML_ParserCreateNS(NULL, '|');
-	XML_SetReturnNSTriplet(s->expat, 1);
-	XML_SetUserData(s->expat, (void *) s);
-	/* Prevent the "billion laughs" attack against expat by disabling
-	* internal entity expansion.  With 2.x, forcibly stop the parser
-	* if an entity is declared - this is safer and a more obvious
-	* failure mode.  With older versions, simply prevent expenansion
-	* of such entities. */
-#ifdef HAVE_XML_STOPPARSER
-	XML_SetEntityDeclHandler(s->expat, (void *) _sx_entity_declaration);
-#else
-	XML_SetDefaultHandler(s->expat, NULL);
-#endif
-
-#ifdef HAVE_XML_SETHASHSALT
-	XML_SetHashSalt(s->expat, rand());
-#endif
-
-    _sx_debug(ZONE, "allocated new sx for %d", tag);
-
     return s;
 }
 
 void sx_free(sx_t s) {
-    sx_buf_t buf;
-    nad_t nad;
-    int i;
-    _sx_chain_t scan, next;
 
-    if (s == NULL)
-        return;
-
-    _sx_debug(ZONE, "freeing sx for %d", s->tag);
-
-    if(s->req_to != NULL) free((void*)s->req_to);
-    if(s->req_from != NULL) free((void*)s->req_from);
-    if(s->req_version != NULL) free((void*)s->req_version);
-
-    if(s->res_to != NULL) free((void*)s->res_to);
-    if(s->res_from != NULL) free((void*)s->res_from);
-    if(s->res_version != NULL) free((void*)s->res_version);
-
-    if(s->id != NULL) free((void*)s->id);
-	if(s->nad != NULL) nad_free(s->nad);
-
-	XML_ParserFree(s->expat);
-
-    if (s->wbufpending != NULL)
-        _sx_buffer_free(s->wbufpending);
-
-    if(s->auth_method != NULL) free((void*)s->auth_method);
-    if(s->auth_id != NULL) free((void*)s->auth_id);
-
+	if (s != NULL && s->wbufpending != NULL){
+		_sx_buffer_free(s->wbufpending);
+	}
     free(s);
 }
 
