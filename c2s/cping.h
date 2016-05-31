@@ -2,53 +2,72 @@
 #ifndef _CJ_PING_H_
 #define _CJ_PING_H_
 
-static time_t start_ping_time = 0;
+#include <pthread.h>
+
 static time_t temp_time = 0;
-
-static char ping[100];
-static int len = 0;
-
-static int is_set = 0;
 static int is_kill = 0 ;
+
+static int len = 0;
+static char* ping = NULL;
+
+static pthread_t t = NULL;
+static pthread_mutex_t mutex;
+
+static jqueue_t queue;
 
 static int _ping_packet(void* key ,void* value, void* arg);
 
-void send_ping_packet(c2s_t c2s){
-// 	char* p = NULL;
-// 	time_t temp_time = time(NULL);
-//
-//	if(!is_set){
-// 		p = (char*)sm_message_ping_packet(&len);//		snprintf(ping,100,"%s",p);//		log_write(c2s->log,LOG_INFO,"ping_packet:%s",p);//		is_set = 1;
-// 		free(p);
-// 	}
-// 
-//	if(temp_time - start_ping_time > 60 * 2.5){
-// 		hash_table_for_each(c2s->sessions,_ping_packet,c2s);
-// 		start_ping_time = temp_time;
-// 	}
-
+static void* pthread_run(void* arg){
+	c2s_t c2s = (c2s_t)arg;
+	while (1){
+		// 1.send ping msg
+		int s = pthread_mutex_trylock(&mutex);
+		if (s == 0){
+			ping = (char*)sm_message_ping_packets("1", &len);
+			temp_time = time(NULL);
+			hash_table_for_each(c2s->sessions, _ping_packet, NULL);
+			free(ping);
+			pthread_mutex_unlock(&mutex);
+		}
+		sleep(30);
+	}
 }
 
-void init_ping(c2s_t c2s){
-	start_ping_time = time(NULL);
+void send_ping_packet(c2s_t c2s){
+	pthread_mutex_init(&mutex, NULL);
+	queue = jqueue_new();
+	if (!t){
+		pthread_create(&t, NULL, pthread_run, c2s);
+	}
+}
+
+void update_kill_sx(){
+	// 2.kill the sx
+	int s = pthread_mutex_trylock(&mutex);
+	if (s == 0){
+		sx_t sx = jqueue_pull(queue);
+		while (sx != NULL){
+			sx_kill(sx);
+			sx = jqueue_pull(queue);
+		}
+		pthread_mutex_unlock(&mutex);
+	}
 }
 
 static int _ping_packet(void* key ,void* value, void* arg){
-	sess_t sess = (sess_t)arg;
-	// 1. check the time
+	sess_t sess = (sess_t)value;
 	if(sess->sx){
-		if(temp_time - sess->last_activity > 60 * 3){
-			sx_kill(sess->sx);
-			is_kill = 1;
+		if(temp_time - sess->last_activity > 60 * 2){
+			log_write(sess->log, LOG_NOTICE, "during ping, send ping msg to uid:%s", sess->uid);
+			sx_raw_write(sess->sx, ping, len);
 		}
-	}
-	// 2. send the ping packet
-	if(!is_kill){
-		if(sess->sx){
-			sx_raw_write(sess->sx,ping,len);
+
+		if (temp_time - sess->last_activity > 60 * 4){
+			log_write(sess->log, LOG_NOTICE, "during ping, kill the uid:%s", sess->uid);
+			jqueue_push(queue, sess->sx, 0);
 		}
+
 	}
-	is_kill = 0;
 	return 0;
 }
 

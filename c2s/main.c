@@ -108,14 +108,13 @@ int main(int argc, char** argv){
 	// init the c2s system
 	init_c2s(c2s);
 
-	// init the ping system
-	init_ping(c2s);
-
 	c2s->fd = mio_listen(c2s->mio, c2s->local_port, c2s->local_ip, c2s_client_mio_callback, (void *) c2s);
 	if(c2s->fd == NULL) {
 		log_write(c2s->log, LOG_ERR, "[%s, port=%d] unable to listen (%s)", c2s->local_ip, c2s->local_port, MIO_STRERROR(MIO_ERROR));
 		exit(1);
 	}
+
+	send_ping_packet(c2s);
 
 	mio_timeout = 10;
 	while(!c2s_shutdown) {
@@ -127,9 +126,8 @@ int main(int argc, char** argv){
 		/** 2.restart to load the configure xml */
 		reload_configure_file(c2s,config_file);
 
-		/** 2.5 minute , we will send ping packet */ 
-		send_ping_packet(c2s);
-
+		/** 3.release the dead sx, during the ping condition*/ 
+		update_kill_sx(c2s);
 	}
 
 	if (c2s->fd != NULL){

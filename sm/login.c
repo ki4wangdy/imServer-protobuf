@@ -52,6 +52,7 @@ char* sm_login_auth(sqlite_db_t db, char* data, int len, int* data_len){
 
 	void* msg = (void*)message_parse_from_data(data, len);
 	if (!msg){
+		sqlite_db_close(db);
 		return "";
 	}
 
@@ -75,6 +76,7 @@ char* sm_login_auth(sqlite_db_t db, char* data, int len, int* data_len){
 
 	char* result = sm_success_insert(uid,bodys,data_len);
 
+	sqlite_db_close(db);
 	message_destory(msg);
 	return result;
 

@@ -23,7 +23,24 @@ void sm_message_ack(sqlite_db_t db, char* id){
 
 char* sm_message_ping_packet(int* len){
 	void* msg = (void*)message_init_no_data();
+	message_set_body(msg, "1", 1);
 	message_set_type(Message_Ping_Type);
+
+	int size = 0;
+	message_serialization_size(msg, &size);
+	*len = size;
+
+	char* m = malloc(sizeof(char)*size);
+	message_to_serialization(msg, m, sizeof(char)*size);
+
+	message_destory(msg);
+	return m;
+}
+
+char* sm_message_ping_packets(char* id, int* len){
+	void* msg = (void*)message_init_no_data();
+	message_set_body(msg, id, strlen(id));
+	message_set_type(msg, Message_Ping_Type);
 
 	int size = 0;
 	message_serialization_size(msg, &size);
